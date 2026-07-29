@@ -5,3 +5,4 @@ dist/
 src-tauri/resources/
 src-tauri/target/
 .DS_Store
+server/updater.key

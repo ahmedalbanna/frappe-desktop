@@ -3,6 +3,7 @@ mod licensing;
 mod backup;
 mod setup;
 
+use licensing::LicenseInfo;
 use runtime::{ProcessInfo, ServiceConfig};
 use setup::{SetupStatus, CompanyData};
 use tauri::State;
@@ -93,13 +94,38 @@ fn setup_company(site_name: String, data: CompanyData) -> Result<String, String>
 // ── Licensing commands ────────────────────────────────────────
 
 #[tauri::command]
+fn get_license_status() -> LicenseInfo {
+    licensing::validate_license()
+}
+
+#[tauri::command]
 fn get_hardware_id() -> Result<String, String> {
     licensing::get_machine_id()
 }
 
 #[tauri::command]
-fn activate_license(key: String) -> Result<String, String> {
-    licensing::activate(key)
+fn activate_license_online(key: String) -> Result<LicenseInfo, String> {
+    licensing::activate_online(key)
+}
+
+#[tauri::command]
+fn activate_license_offline(key: String, signature: String) -> Result<LicenseInfo, String> {
+    licensing::activate_offline(key, signature)
+}
+
+#[tauri::command]
+fn start_trial() -> Result<LicenseInfo, String> {
+    licensing::start_trial()
+}
+
+#[tauri::command]
+fn deactivate_license() -> Result<(), String> {
+    licensing::deactivate()
+}
+
+#[tauri::command]
+fn check_for_updates() -> Result<serde_json::Value, String> {
+    licensing::check_for_updates()
 }
 
 // ── Backup commands ───────────────────────────────────────────
@@ -139,8 +165,13 @@ pub fn run() {
             create_site,
             install_apps,
             setup_company,
+            get_license_status,
             get_hardware_id,
-            activate_license,
+            activate_license_online,
+            activate_license_offline,
+            start_trial,
+            deactivate_license,
+            check_for_updates,
             create_backup,
             restore_backup,
         ])

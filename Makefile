@@ -1,4 +1,4 @@
-.PHONY: all bundle build clean
+.PHONY: all bundle build sign update-json clean dev
 
 SHELL := /bin/bash
 TAURI := pnpm tauri
@@ -26,6 +26,24 @@ appimage:
 # Build only for NSIS (Windows cross-compile)
 nsis:
 	$(TAURI) build --bundles nsis
+
+# Sign a build artifact for Tauri updater
+# Usage: make sign FILE=path/to/appimage
+sign:
+	$(TAURI) signer sign \
+		-k "$(TAURI_SIGNING_PRIVATE_KEY_PATH)" \
+		-p "$(TAURI_SIGNING_PRIVATE_KEY_PASSWORD)" \
+		"$(FILE)"
+
+# Generate Tauri updater update.json (run after signed build)
+update-json:
+	@echo '{' > update.json
+	@echo '  "version": "$(VERSION)",' >> update.json
+	@echo '  "url": "$(URL)",' >> update.json
+	@echo '  "signature": "$(SIG)",' >> update.json
+	@echo '  "notes": "$(NOTES)"' >> update.json
+	@echo '}' >> update.json
+	@echo "update.json generated for version $(VERSION)"
 
 # Clean build artifacts
 clean:
