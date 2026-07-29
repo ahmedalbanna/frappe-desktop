@@ -2,24 +2,22 @@ mod runtime;
 mod licensing;
 mod backup;
 
-use serde::Serialize;
+use runtime::{ProcessInfo, ServiceConfig};
 use tauri::State;
 use std::sync::Mutex;
-
-#[derive(Default, Serialize, Clone)]
-pub struct ServiceStatus {
-    pub mariadb: String,
-    pub redis: String,
-    pub frappe: String,
-}
 
 pub struct AppState {
     pub runtime: Mutex<runtime::RuntimeManager>,
 }
 
 #[tauri::command]
-fn get_service_status(state: State<AppState>) -> ServiceStatus {
+fn get_service_status(state: State<AppState>) -> Vec<ProcessInfo> {
     state.runtime.lock().unwrap().get_status()
+}
+
+#[tauri::command]
+fn get_service_config(state: State<AppState>) -> ServiceConfig {
+    state.runtime.lock().unwrap().get_config()
 }
 
 #[tauri::command]
@@ -30,6 +28,26 @@ fn start_all_services(state: State<AppState>) -> Result<(), String> {
 #[tauri::command]
 fn stop_all_services(state: State<AppState>) -> Result<(), String> {
     state.runtime.lock().unwrap().stop_all()
+}
+
+#[tauri::command]
+fn start_service(state: State<AppState>, name: String) -> Result<(), String> {
+    state.runtime.lock().unwrap().start_service(&name)
+}
+
+#[tauri::command]
+fn stop_service(state: State<AppState>, name: String) -> Result<(), String> {
+    state.runtime.lock().unwrap().stop_service(&name)
+}
+
+#[tauri::command]
+fn restart_service(state: State<AppState>, name: String) -> Result<(), String> {
+    state.runtime.lock().unwrap().restart_service(&name)
+}
+
+#[tauri::command]
+fn get_service_logs(state: State<AppState>, name: String) -> Result<Vec<String>, String> {
+    state.runtime.lock().unwrap().get_logs(&name)
 }
 
 #[tauri::command]
@@ -70,8 +88,13 @@ pub fn run() {
         .manage(app_state)
         .invoke_handler(tauri::generate_handler![
             get_service_status,
+            get_service_config,
             start_all_services,
             stop_all_services,
+            start_service,
+            stop_service,
+            restart_service,
+            get_service_logs,
             get_frappe_url,
             get_hardware_id,
             activate_license,
