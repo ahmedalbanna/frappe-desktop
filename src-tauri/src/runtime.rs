@@ -283,6 +283,12 @@ fn wait_for_port(port: u16, max_secs: u64) -> Result<(), String> {
     Err(format!("Timeout waiting for port {} ({}s)", port, max_secs))
 }
 
+pub fn data_dir() -> PathBuf {
+    dirs::data_dir()
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("frappe-desktop")
+}
+
 fn dirs_or_default() -> PathBuf {
     dirs::data_dir()
         .unwrap_or_else(|| PathBuf::from("."))

@@ -1,14 +1,27 @@
 mod runtime;
 mod licensing;
 mod backup;
+mod setup;
 
 use runtime::{ProcessInfo, ServiceConfig};
+use setup::{SetupStatus, CompanyData};
 use tauri::State;
 use std::sync::Mutex;
+use std::path::PathBuf;
 
 pub struct AppState {
     pub runtime: Mutex<runtime::RuntimeManager>,
 }
+
+fn sites_dir() -> PathBuf {
+    runtime::data_dir().join("frappe-bench").join("sites")
+}
+
+fn bench_dir() -> PathBuf {
+    runtime::data_dir().join("frappe-bench")
+}
+
+// ── Service commands ─────────────────────────────────────────
 
 #[tauri::command]
 fn get_service_status(state: State<AppState>) -> Vec<ProcessInfo> {
@@ -55,6 +68,30 @@ fn get_frappe_url() -> String {
     "http://localhost:8000".to_string()
 }
 
+// ── Setup commands ────────────────────────────────────────────
+
+#[tauri::command]
+fn check_setup_status() -> SetupStatus {
+    setup::check_setup(&sites_dir())
+}
+
+#[tauri::command]
+fn create_site(site_name: String, admin_password: String) -> Result<String, String> {
+    setup::create_site(&sites_dir(), &bench_dir(), &site_name, &admin_password)
+}
+
+#[tauri::command]
+fn install_apps(site_name: String, apps: Vec<String>) -> Result<Vec<String>, String> {
+    setup::install_apps(&bench_dir(), &site_name, &apps)
+}
+
+#[tauri::command]
+fn setup_company(site_name: String, data: CompanyData) -> Result<String, String> {
+    setup::setup_company(&bench_dir(), &site_name, &data)
+}
+
+// ── Licensing commands ────────────────────────────────────────
+
 #[tauri::command]
 fn get_hardware_id() -> Result<String, String> {
     licensing::get_machine_id()
@@ -64,6 +101,8 @@ fn get_hardware_id() -> Result<String, String> {
 fn activate_license(key: String) -> Result<String, String> {
     licensing::activate(key)
 }
+
+// ── Backup commands ───────────────────────────────────────────
 
 #[tauri::command]
 fn create_backup(path: String) -> Result<String, String> {
@@ -96,6 +135,10 @@ pub fn run() {
             restart_service,
             get_service_logs,
             get_frappe_url,
+            check_setup_status,
+            create_site,
+            install_apps,
+            setup_company,
             get_hardware_id,
             activate_license,
             create_backup,
