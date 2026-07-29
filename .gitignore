@@ -3,6 +3,5 @@ dist/
 .env
 *.log
 src-tauri/resources/
-src-tauri/icons/
 src-tauri/target/
 .DS_Store

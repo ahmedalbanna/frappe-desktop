@@ -110,9 +110,6 @@ impl RuntimeManager {
             .or_else(|| find_binary("mysqld"))
             .ok_or_else(|| "MariaDB binary not found".to_string())?;
 
-        let install_bin = find_binary("mariadb-install-db")
-            .or_else(|| find_binary("mysql_install_db"));
-
         let data_dir = self.data_dir.join("mariadb-data");
         let socket_path = &self.config.mariadb_socket;
 
@@ -121,18 +118,17 @@ impl RuntimeManager {
 
         if needs_init {
             fs::create_dir_all(&data_dir).map_err(|e| e.to_string())?;
-            if let Some(installer) = install_bin {
-                let output = Command::new(&installer)
-                    .arg("--datadir").arg(&data_dir)
-                    .arg("--auth-root-authentication-method=normal")
-                    .output()
-                    .map_err(|e| format!("Failed to init MariaDB data dir: {}", e))?;
-                if !output.status.success() {
-                    return Err(format!(
-                        "mariadb-install-db failed: {}",
-                        String::from_utf8_lossy(&output.stderr)
-                    ));
-                }
+            let output = Command::new(&mariadb_bin)
+                .arg("--initialize-insecure")
+                .arg("--datadir").arg(&data_dir)
+                .arg("--port").arg(self.config.mariadb_port.to_string())
+                .output()
+                .map_err(|e| format!("Failed to init MariaDB data dir: {}", e))?;
+            if !output.status.success() {
+                return Err(format!(
+                    "mariadb --initialize-insecure failed: {}",
+                    String::from_utf8_lossy(&output.stderr)
+                ));
             }
         }
 

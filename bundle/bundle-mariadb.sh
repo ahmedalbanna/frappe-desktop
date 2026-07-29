@@ -3,11 +3,13 @@
 set -euo pipefail
 
 MARIADB_VERSION="11.4.5"
-RESOURCES_DIR="$(dirname "$0")/../src-tauri/resources"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+RESOURCES_DIR="$(cd "${SCRIPT_DIR}/../src-tauri/resources" && pwd)"
 
 detect_arch() {
+    # MariaDB archives use underscore format: x86_64, aarch64
     case "$(uname -m)" in
-        x86_64|amd64) echo "x86-64" ;;
+        x86_64|amd64) echo "x86_64" ;;
         aarch64|arm64) echo "aarch64" ;;
         *) echo "unsupported: $(uname -m)" >&2; exit 1 ;;
     esac
@@ -15,7 +17,7 @@ detect_arch() {
 
 download_mariadb_linux() {
     local arch="$1"
-    local url="https://archive.mariadb.org/mariadb-${MARIADB_VERSION}/bintar-linux-systemd/mariadb-${MARIADB_VERSION}-linux-systemd-${arch}.tar.gz"
+    local url="https://archive.mariadb.org/mariadb-${MARIADB_VERSION}/bintar-linux-systemd-${arch}/mariadb-${MARIADB_VERSION}-linux-systemd-${arch}.tar.gz"
     local tmpdir
     tmpdir=$(mktemp -d)
 
@@ -23,12 +25,17 @@ download_mariadb_linux() {
     curl -L "$url" | tar xz -C "$tmpdir"
 
     mkdir -p "${RESOURCES_DIR}/mariadb"
-    cp "${tmpdir}/mariadb-${MARIADB_VERSION}-linux-systemd-${arch}/bin/mariadbd" "${RESOURCES_DIR}/mariadb/"
-    cp "${tmpdir}/mariadb-${MARIADB_VERSION}-linux-systemd-${arch}/bin/mariadb" "${RESOURCES_DIR}/mariadb/"
-    cp "${tmpdir}/mariadb-${MARIADB_VERSION}-linux-systemd-${arch}/bin/mysqldump" "${RESOURCES_DIR}/mariadb/"
+    local srcdir="${tmpdir}/mariadb-${MARIADB_VERSION}-linux-systemd-${arch}"
+    cp "${srcdir}/bin/mariadbd" "${RESOURCES_DIR}/mariadb/"
+    cp "${srcdir}/bin/mariadb" "${RESOURCES_DIR}/mariadb/"
+    cp "${srcdir}/bin/mariadb-install-db" "${RESOURCES_DIR}/mariadb/" || true
+    cp "${srcdir}/bin/mysqldump" "${RESOURCES_DIR}/mariadb/" || true
+    cp "${srcdir}/bin/mysql_install_db" "${RESOURCES_DIR}/mariadb/" || true
 
+    chmod +x "${RESOURCES_DIR}/mariadb/"*
     rm -rf "$tmpdir"
     echo "Done. MariaDB binaries in ${RESOURCES_DIR}/mariadb/"
+    ls -lh "${RESOURCES_DIR}/mariadb/"
 }
 
 download_mariadb_windows() {

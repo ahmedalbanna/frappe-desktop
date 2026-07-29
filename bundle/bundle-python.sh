@@ -3,7 +3,8 @@
 set -euo pipefail
 
 PYTHON_VERSION="3.12.9"
-RESOURCES_DIR="$(dirname "$0")/../src-tauri/resources"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+RESOURCES_DIR="$(cd "${SCRIPT_DIR}/../src-tauri/resources" && pwd)"
 
 download_python_linux() {
     local arch="$1"

@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Download and extract portable Redis for the target platform
 set -euo pipefail
 
 REDIS_VERSION="7.4.2"
-RESOURCES_DIR="$(dirname "$0")/../src-tauri/resources"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+RESOURCES_DIR="$(cd "${SCRIPT_DIR}/../src-tauri/resources" && pwd)"
 
 download_redis_linux() {
     local url="https://github.com/redis/redis/archive/refs/tags/${REDIS_VERSION}.tar.gz"
@@ -13,15 +13,18 @@ download_redis_linux() {
     echo "Downloading Redis ${REDIS_VERSION} source for Linux ..."
     curl -L "$url" | tar xz -C "$tmpdir"
 
-    cd "${tmpdir}/redis-${REDIS_VERSION}"
-    make -j"$(nproc)" MALLOC=libc
+    (
+        cd "${tmpdir}/redis-${REDIS_VERSION}"
+        make -j"$(nproc)" MALLOC=libc
+    )
 
     mkdir -p "${RESOURCES_DIR}/redis"
-    cp src/redis-server "${RESOURCES_DIR}/redis/"
-    cp src/redis-cli "${RESOURCES_DIR}/redis/"
+    cp "${tmpdir}/redis-${REDIS_VERSION}/src/redis-server" "${RESOURCES_DIR}/redis/"
+    cp "${tmpdir}/redis-${REDIS_VERSION}/src/redis-cli" "${RESOURCES_DIR}/redis/"
 
     rm -rf "$tmpdir"
     echo "Done. Redis binaries in ${RESOURCES_DIR}/redis/"
+    ls -lh "${RESOURCES_DIR}/redis/"
 }
 
 download_redis_windows() {
@@ -36,7 +39,6 @@ download_redis_windows() {
     mkdir -p "${RESOURCES_DIR}/redis"
     cp "${tmpdir}/redis-server.exe" "${RESOURCES_DIR}/redis/"
     cp "${tmpdir}/redis-cli.exe" "${RESOURCES_DIR}/redis/"
-
     rm -rf "$tmpdir"
     echo "Done. Redis binaries in ${RESOURCES_DIR}/redis/"
 }
