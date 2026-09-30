@@ -2,6 +2,7 @@ mod runtime;
 mod licensing;
 mod backup;
 mod setup;
+mod update;
 
 use licensing::LicenseInfo;
 use runtime::{ProcessInfo, ServiceConfig};
@@ -140,6 +141,11 @@ fn restore_backup(path: String) -> Result<String, String> {
     backup::restore_backup(&path)
 }
 
+#[tauri::command]
+fn backup_files(site_name: String, dest: String) -> Result<String, String> {
+    backup::backup_files(&site_name, &dest)
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     let app_state = AppState {
@@ -174,6 +180,7 @@ pub fn run() {
             check_for_updates,
             create_backup,
             restore_backup,
+            backup_files,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

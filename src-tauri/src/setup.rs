@@ -18,6 +18,13 @@ pub struct CompanyData {
     pub currency: String,
 }
 
+#[derive(Serialize)]
+pub struct SetupProgress {
+    pub step: String,
+    pub message: String,
+    pub completed: bool,
+}
+
 pub fn check_setup(sites_dir: &PathBuf) -> SetupStatus {
     let sites = list_sites(sites_dir);
     if sites.is_empty() {
@@ -34,6 +41,35 @@ pub fn check_setup(sites_dir: &PathBuf) -> SetupStatus {
         site_name: Some(site),
         apps_installed: apps,
     }
+}
+
+pub fn find_resources_dir() -> PathBuf {
+    std::env::current_exe()
+        .ok()
+        .and_then(|exe| exe.parent().map(|p| p.to_path_buf()))
+        .unwrap_or_else(|| PathBuf::from("."))
+        .join("resources")
+}
+
+pub fn find_bundled_binary(name: &str) -> Option<PathBuf> {
+    let resources_dir = find_resources_dir();
+    let binary_name = if cfg!(target_os = "windows") {
+        format!("{}.exe", name)
+    } else {
+        name.to_string()
+    };
+
+    let candidate = resources_dir.join(name).join(&binary_name);
+    if candidate.exists() {
+        return Some(candidate);
+    }
+
+    let candidate = resources_dir.join(&binary_name);
+    if candidate.exists() {
+        return Some(candidate);
+    }
+
+    None
 }
 
 pub fn create_site(
@@ -158,7 +194,6 @@ frappe.destroy()
         Ok("Company setup completed".to_string())
     } else {
         let stderr = String::from_utf8_lossy(&result.stderr);
-        // Many Frappe console warnings aren't real errors
         if stderr.contains("Error") || stderr.contains("Traceback") {
             Err(format!("Company setup failed: {}", stderr))
         } else {
@@ -205,7 +240,11 @@ fn find_bench() -> Result<String, String> {
         }
     }
 
-    // Common fallback paths
+    let bundled = find_bundled_binary("bench");
+    if let Some(bench_path) = bundled {
+        return Ok(bench_path.to_string_lossy().to_string());
+    }
+
     let fallbacks = vec!["/usr/local/bin/bench", "/usr/bin/bench", "/home/frappe/.local/bin/bench"];
     for path in &fallbacks {
         if std::path::Path::new(path).exists() {
@@ -213,5 +252,5 @@ fn find_bench() -> Result<String, String> {
         }
     }
 
-    Err("bench command not found. Make sure Frappe Bench is installed.".to_string())
+    Err("bench command not found. Please install Frappe Bench or bundled binaries.".to_string())
 }
